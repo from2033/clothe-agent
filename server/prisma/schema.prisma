@@ -78,6 +78,8 @@ model TryOnTask {
   resultImageFileId  String?
   provider           String
   providerTaskId     String?
+  aiModel            String?
+  garmentType        String?
   status             TryOnStatus @default(PENDING)
   failureReason      String?
   createdAt          DateTime    @default(now())

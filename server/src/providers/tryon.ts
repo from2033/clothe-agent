@@ -4,6 +4,8 @@ export interface ProviderInput {
   personImageUrl: string
   productImageUrl: string
   measurements: Record<string, string>
+  model?: string
+  garmentType?: string
 }
 
 export interface TryOnProvider {
@@ -148,20 +150,51 @@ class AliyunTryOnProvider implements TryOnProvider {
     }
   }
 
+  // 用同一个 DashScope key 调分割接口，把服装从背景/干扰物中抠出来。
+  // 失败时回退用原图，不阻断试衣。
+  private async segmentGarment(imageUrl: string, clothesType: string): Promise<string> {
+    try {
+      const response = await fetch(
+        'https://dashscope.aliyuncs.com/api/v1/services/vision/image-process/process',
+        {
+          method: 'POST',
+          headers: this.headers(false),
+          body: JSON.stringify({
+            model: 'aitryon-parsing-v1',
+            input: { image_url: imageUrl },
+            parameters: { clothes_type: [clothesType] },
+          }),
+          signal: AbortSignal.timeout(20_000),
+        },
+      )
+      if (!response.ok) return imageUrl
+      const data = (await response.json()) as { output?: { crop_img_url?: string[] } }
+      return data.output?.crop_img_url?.[0] || imageUrl
+    } catch {
+      return imageUrl
+    }
+  }
+
   async create(input: ProviderInput) {
     if (!config.DASHSCOPE_API_KEY) throw new Error('DASHSCOPE_API_KEY 未配置')
+    const garmentType =
+      input.garmentType === 'lower' ? 'lower' : input.garmentType === 'dress' ? 'dress' : 'upper'
+    const clothesType =
+      garmentType === 'lower' ? 'lower' : garmentType === 'dress' ? 'dresses' : 'upper'
+    // 先抠图去背景，再喂给试衣模型
+    const garmentUrl = await this.segmentGarment(input.productImageUrl, clothesType)
+    const garmentSlot = garmentType === 'lower' ? 'bottom_garment_url' : 'top_garment_url'
+    const model = input.model || config.ALIYUN_TRYON_MODEL
     const response = await fetch(
       'https://dashscope.aliyuncs.com/api/v1/services/aigc/image2image/image-synthesis',
       {
         method: 'POST',
         headers: this.headers(true),
         body: JSON.stringify({
-          model: config.ALIYUN_TRYON_MODEL,
+          model,
           input: {
             person_image_url: input.personImageUrl,
-            // 当前商品数据尚未区分上装/下装。top_garment_url 可覆盖上装与连衣裙；
-            // 后续增加服装品类字段后，再按品类切换为 bottom_garment_url。
-            top_garment_url: input.productImageUrl,
+            [garmentSlot]: garmentUrl,
           },
           parameters: {
             resolution: -1,

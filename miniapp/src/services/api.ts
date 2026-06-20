@@ -63,8 +63,14 @@ export const api = {
     request<Profile>('/api/profile', { method: 'PUT', data: profile }),
   parseProduct: (url: string) =>
     request<Product>('/api/products/parse', { method: 'POST', data: { url } }),
-  createTryOnTask: (productId: string) =>
-    request<TryOnTask>('/api/tasks', { method: 'POST', data: { productId } }),
+  createTryOnTask: (
+    productId: string,
+    options?: { model?: string; garmentType?: string },
+  ) =>
+    request<TryOnTask>('/api/tasks', {
+      method: 'POST',
+      data: { productId, ...options },
+    }),
   getTryOnTask: (taskId: string) => request<TryOnTask>(`/api/tasks/${taskId}`),
   listTryOnTasks: () => request<TryOnTask[]>('/api/tasks'),
   deleteTryOnTask: (taskId: string) =>

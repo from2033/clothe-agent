@@ -212,3 +212,25 @@
   color: #07c160;
   font-size: 28px;
 }
+
+.seg {
+  display: flex;
+  gap: 16px;
+}
+
+.seg__item {
+  flex: 1;
+  padding: 18px 0;
+  border: 2px solid #e5e6eb;
+  border-radius: 14px;
+  color: #4e5969;
+  font-size: 28px;
+  text-align: center;
+}
+
+.seg__item--active {
+  border-color: #07c160;
+  background: #ecfdf3;
+  color: #07c160;
+  font-weight: 600;
+}

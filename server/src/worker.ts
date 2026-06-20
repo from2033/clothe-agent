@@ -61,6 +61,8 @@ const worker = new Worker<{ taskId: string }>(
       personImageUrl: await signedUrl(task.personImageFileId, config.AI_ASSET_TTL_SECONDS),
       productImageUrl: await signedUrl(task.productImageFileId, config.AI_ASSET_TTL_SECONDS),
       measurements,
+      model: task.aiModel ?? undefined,
+      garmentType: task.garmentType ?? undefined,
     })
     await prisma.tryOnTask.update({
       where: { id: task.id },

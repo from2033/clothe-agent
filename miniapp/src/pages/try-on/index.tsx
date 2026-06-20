@@ -9,11 +9,24 @@ import './index.scss'
 
 const POLL_INTERVAL = 2500
 
+const GARMENT_TYPES: Array<{ value: 'upper' | 'lower' | 'dress'; label: string }> = [
+  { value: 'upper', label: '上装' },
+  { value: 'lower', label: '下装' },
+  { value: 'dress', label: '连衣裙' },
+]
+
+const AI_MODELS: Array<{ value: 'aitryon' | 'aitryon-plus'; label: string }> = [
+  { value: 'aitryon', label: '标准' },
+  { value: 'aitryon-plus', label: '高清·更准' },
+]
+
 export default function TryOnPage() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [url, setUrl] = useState('')
   const [product, setProduct] = useState<Product | null>(null)
   const [garmentPreview, setGarmentPreview] = useState('')
+  const [garmentType, setGarmentType] = useState<'upper' | 'lower' | 'dress'>('upper')
+  const [aiModel, setAiModel] = useState<'aitryon' | 'aitryon-plus'>('aitryon')
   const [task, setTask] = useState<TryOnTask | null>(null)
   const [busy, setBusy] = useState(false)
   const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -146,7 +159,10 @@ export default function TryOnPage() {
         setProduct(item)
       }
       Taro.showLoading({ title: '创建任务中', mask: true })
-      const created = await api.createTryOnTask(item.id)
+      const created = await api.createTryOnTask(item.id, {
+        model: aiModel,
+        garmentType,
+      })
       setTask(created)
       schedulePoll(created.id)
     } catch (error) {
@@ -279,6 +295,42 @@ export default function TryOnPage() {
             </View>
             <Text className='url-field__tip'>
               淘宝/天猫反爬较强，链接解析可能失败，建议优先用上传服装图。
+            </Text>
+          </View>
+
+          <View className='section'>
+            <Text className='section-title'>服装品类</Text>
+            <View className='seg'>
+              {GARMENT_TYPES.map((item) => (
+                <Text
+                  key={item.value}
+                  className={`seg__item ${garmentType === item.value ? 'seg__item--active' : ''}`}
+                  onClick={() => setGarmentType(item.value)}
+                >
+                  {item.label}
+                </Text>
+              ))}
+            </View>
+            <Text className='url-field__tip'>
+              选对品类能更准地抠出服装、套到正确部位。
+            </Text>
+          </View>
+
+          <View className='section'>
+            <Text className='section-title'>清晰度</Text>
+            <View className='seg'>
+              {AI_MODELS.map((item) => (
+                <Text
+                  key={item.value}
+                  className={`seg__item ${aiModel === item.value ? 'seg__item--active' : ''}`}
+                  onClick={() => setAiModel(item.value)}
+                >
+                  {item.label}
+                </Text>
+              ))}
+            </View>
+            <Text className='url-field__tip'>
+              高清版纹理、Logo 还原更好，单价略高。
             </Text>
           </View>
 

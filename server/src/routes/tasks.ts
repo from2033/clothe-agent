@@ -9,7 +9,13 @@ import { config } from '../config.js'
 
 export const taskRoutes: FastifyPluginAsync = async (app) => {
   app.post('/', { preHandler: authenticate }, async (request, reply) => {
-    const { productId } = z.object({ productId: z.string().min(1) }).parse(request.body)
+    const { productId, model, garmentType } = z
+      .object({
+        productId: z.string().min(1),
+        model: z.enum(['aitryon', 'aitryon-plus']).optional(),
+        garmentType: z.enum(['upper', 'lower', 'dress']).optional(),
+      })
+      .parse(request.body)
     const [profile, product] = await Promise.all([
       prisma.profile.findUnique({ where: { userId: request.user.userId } }),
       prisma.product.findFirst({ where: { id: productId, userId: request.user.userId } }),
@@ -37,6 +43,8 @@ export const taskRoutes: FastifyPluginAsync = async (app) => {
         productImageFileId: product.imageFileId,
         personImageFileId: profile.photoFileId,
         provider: config.TRYON_PROVIDER,
+        aiModel: model,
+        garmentType,
       },
     })
     await tryOnQueue.add('generate', { taskId: task.id }, {
