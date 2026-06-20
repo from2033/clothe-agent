@@ -1,0 +1,26 @@
+# 密钥 / 环境变量（绝不提交）
+.env
+.env.*
+!.env.example
+!.env.docker.example
+**/project.private.config.json
+
+# 依赖
+node_modules/
+**/node_modules/
+
+# 构建产物 / 编译缓存
+dist/
+build/
+server/dist/
+.swc/
+.taro-cache/
+**/.swc/
+**/.taro-cache/
+
+# 数据卷 / 运行时
+*_data/
+*.log
+
+# 系统
+.DS_Store

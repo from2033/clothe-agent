@@ -1,0 +1,103 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ProductPlatform {
+  TAOBAO
+  TMALL
+}
+
+enum ParseStatus {
+  SUCCEEDED
+  FAILED
+}
+
+enum TryOnStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+}
+
+model User {
+  id        String      @id @default(cuid())
+  openId    String      @unique
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  profile   Profile?
+  products  Product[]
+  tasks     TryOnTask[]
+  files     StoredFile[]
+}
+
+model Profile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  name        String   @default("")
+  height      String   @default("")
+  weight      String   @default("")
+  bust        String   @default("")
+  waist       String   @default("")
+  hips        String   @default("")
+  photoFileId String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Product {
+  id            String          @id @default(cuid())
+  userId        String
+  originalUrl   String
+  normalizedUrl String
+  platform      ProductPlatform
+  title         String
+  imageFileId   String
+  parseStatus   ParseStatus     @default(SUCCEEDED)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks         TryOnTask[]
+
+  @@index([userId, normalizedUrl, parseStatus])
+}
+
+model TryOnTask {
+  id                 String      @id @default(cuid())
+  userId             String
+  productId          String
+  originalUrl        String
+  productTitle       String
+  productImageFileId String
+  personImageFileId  String
+  resultImageFileId  String?
+  provider           String
+  providerTaskId     String?
+  status             TryOnStatus @default(PENDING)
+  failureReason      String?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+  user               User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product            Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, productId, status, createdAt(sort: Desc)])
+}
+
+model StoredFile {
+  id          String   @id @default(cuid())
+  userId      String
+  objectKey   String   @unique
+  contentType String
+  size        Int
+  kind        String
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, kind])
+}

@@ -1,0 +1,16 @@
+{
+  "rules": {
+    "profiles": {
+      ".read": false,
+      ".write": false
+    },
+    "products": {
+      ".read": false,
+      ".write": false
+    },
+    "tryon_tasks": {
+      ".read": false,
+      ".write": false
+    }
+  }
+}
