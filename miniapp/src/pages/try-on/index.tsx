@@ -1,7 +1,7 @@
 import { Button, Image, Input, Text, View } from '@tarojs/components'
 import Taro, { useDidHide, useDidShow } from '@tarojs/taro'
 import { useRef, useState } from 'react'
-import { api } from '@/services/api'
+import { api, uploadGarmentImage } from '@/services/api'
 import type { Product, Profile, TryOnTask } from '@/types/domain'
 import { statusLabel } from '@/utils/format'
 import './index.scss'
@@ -73,6 +73,36 @@ export default function TryOnPage() {
     }
   }
 
+  async function uploadGarment() {
+    try {
+      const res = await Taro.chooseMedia({
+        count: 1,
+        mediaType: ['image'],
+        sizeType: ['compressed'],
+      })
+      const file = res.tempFiles[0]
+      if (!file) return
+      if (file.size > 10 * 1024 * 1024) {
+        Taro.showToast({ title: '图片不能超过 10MB', icon: 'none' })
+        return
+      }
+      setBusy(true)
+      Taro.showLoading({ title: '上传服装图', mask: true })
+      const uploaded = await uploadGarmentImage(file.tempFilePath)
+      setProduct(uploaded)
+      setUrl('')
+      setTask(null)
+    } catch (error) {
+      Taro.showToast({
+        title: error instanceof Error ? error.message : '上传失败',
+        icon: 'none',
+      })
+    } finally {
+      Taro.hideLoading()
+      setBusy(false)
+    }
+  }
+
   async function startTryOn() {
     if (!profile?.photoFileId) {
       Taro.showModal({
@@ -85,8 +115,8 @@ export default function TryOnPage() {
       })
       return
     }
-    if (!url.trim()) {
-      Taro.showToast({ title: '请粘贴商品链接', icon: 'none' })
+    if (!product && !url.trim()) {
+      Taro.showToast({ title: '请上传服装图或粘贴商品链接', icon: 'none' })
       return
     }
 
@@ -103,12 +133,16 @@ export default function TryOnPage() {
     }
 
     setBusy(true)
-    Taro.showLoading({ title: '解析商品中', mask: true })
     try {
-      const parsed = await api.parseProduct(url.trim())
-      setProduct(parsed)
+      // 已上传服装图则直接用，否则走链接解析（淘宝反爬大概率失败）。
+      let item = product
+      if (!item) {
+        Taro.showLoading({ title: '解析商品中', mask: true })
+        item = await api.parseProduct(url.trim())
+        setProduct(item)
+      }
       Taro.showLoading({ title: '创建任务中', mask: true })
-      const created = await api.createTryOnTask(parsed.id)
+      const created = await api.createTryOnTask(item.id)
       setTask(created)
       schedulePoll(created.id)
     } catch (error) {
@@ -190,7 +224,30 @@ export default function TryOnPage() {
       {!task ? (
         <>
           <View className='section'>
-            <Text className='section-title'>淘宝 / 天猫商品链接</Text>
+            <Text className='section-title'>服装图片（推荐）</Text>
+            {product?.imageTempUrl ? (
+              <View className='garment'>
+                <Image
+                  className='garment__image'
+                  src={product.imageTempUrl}
+                  mode='aspectFill'
+                />
+                <Text className='garment__change' onClick={uploadGarment}>
+                  重新选择
+                </Text>
+              </View>
+            ) : (
+              <Button className='secondary-button' onClick={uploadGarment}>
+                上传服装图（淘宝截图 / 相册）
+              </Button>
+            )}
+            <Text className='url-field__tip'>
+              从淘宝长按保存商品图后上传，最稳定，可直接生成试穿效果。
+            </Text>
+          </View>
+
+          <View className='section'>
+            <Text className='section-title'>或 粘贴商品链接</Text>
             <View className='url-field'>
               <Input
                 className='url-field__input'
@@ -206,7 +263,7 @@ export default function TryOnPage() {
               </Text>
             </View>
             <Text className='url-field__tip'>
-              首版仅支持可公开访问的淘宝、天猫链接。若解析失败，请更换链接后重试。
+              淘宝/天猫反爬较强，链接解析可能失败，建议优先用上传服装图。
             </Text>
           </View>
 

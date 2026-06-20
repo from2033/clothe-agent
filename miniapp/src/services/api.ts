@@ -90,3 +90,18 @@ export async function uploadProfilePhoto(tempFilePath: string): Promise<string> 
   }
   return data.fileId
 }
+
+export async function uploadGarmentImage(tempFilePath: string): Promise<Product> {
+  const token = Taro.getStorageSync<string>(TOKEN_KEY) || (await login())
+  const response = await Taro.uploadFile({
+    url: `${API_BASE_URL}/api/products/upload`,
+    filePath: tempFilePath,
+    name: 'file',
+    header: { Authorization: `Bearer ${token}` },
+  })
+  const data = JSON.parse(response.data) as Product & { error?: { message?: string } }
+  if (response.statusCode >= 400 || !data.id) {
+    throw new Error(data.error?.message || '服装图上传失败')
+  }
+  return data
+}

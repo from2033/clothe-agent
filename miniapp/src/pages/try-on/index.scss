@@ -193,3 +193,22 @@
   gap: 20px;
   margin-top: 28px;
 }
+
+.garment {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 12px;
+}
+
+.garment__image {
+  width: 200px;
+  height: 200px;
+  border-radius: 16px;
+  background: #f2f3f5;
+}
+
+.garment__change {
+  color: #07c160;
+  font-size: 28px;
+}
