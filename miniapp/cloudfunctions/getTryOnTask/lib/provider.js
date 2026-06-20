@@ -1,11 +1,11 @@
-async function getJson(url) {
+async function getJson(url, apiKey = process.env.AI_API_KEY || '') {
   const fetch = require('node-fetch')
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 15000)
   try {
     const response = await fetch(url, {
       headers: {
-        Authorization: `Bearer ${process.env.AI_API_KEY || ''}`,
+        Authorization: `Bearer ${apiKey}`,
       },
       signal: controller.signal,
     })
@@ -31,6 +31,28 @@ function createProvider(name) {
         return {
           status: 'succeeded',
           existingResultFileId: task.personImageFileId,
+        }
+      },
+    }
+  }
+
+  if (name === 'aliyun') {
+    const apiKey = process.env.DASHSCOPE_API_KEY || process.env.AI_API_KEY || ''
+    if (!apiKey) throw new Error('DASHSCOPE_API_KEY 未配置')
+    return {
+      async status(task) {
+        const result = await getJson(
+          `https://dashscope.aliyuncs.com/api/v1/tasks/${encodeURIComponent(
+            task.providerTaskId,
+          )}`,
+          apiKey,
+        )
+        const output = result.output || {}
+        const status = normalizeStatus(output.task_status)
+        return {
+          status,
+          resultUrl: output.image_url,
+          failureReason: output.message || output.code,
         }
       },
     }

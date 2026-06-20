@@ -30,6 +30,8 @@ const schema = z.object({
   TRYON_PROVIDER: z.string().default('mock'),
   FAL_KEY: z.string().default(''),
   FAL_MODEL_ID: z.string().default('fal-ai/fashn/tryon/v1.5'),
+  DASHSCOPE_API_KEY: z.string().default(''),
+  ALIYUN_TRYON_MODEL: z.enum(['aitryon', 'aitryon-plus']).default('aitryon'),
   AI_CREATE_URL: z.string().default(''),
   AI_STATUS_URL: z.string().default(''),
   AI_API_KEY: z.string().default(''),

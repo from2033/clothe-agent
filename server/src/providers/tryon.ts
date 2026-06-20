@@ -137,8 +137,93 @@ class FalProvider implements TryOnProvider {
   }
 }
 
+class AliyunTryOnProvider implements TryOnProvider {
+  name = 'aliyun'
+
+  private headers(async = false) {
+    return {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${config.DASHSCOPE_API_KEY}`,
+      ...(async ? { 'X-DashScope-Async': 'enable' } : {}),
+    }
+  }
+
+  async create(input: ProviderInput) {
+    if (!config.DASHSCOPE_API_KEY) throw new Error('DASHSCOPE_API_KEY 未配置')
+    const response = await fetch(
+      'https://dashscope.aliyuncs.com/api/v1/services/aigc/image2image/image-synthesis',
+      {
+        method: 'POST',
+        headers: this.headers(true),
+        body: JSON.stringify({
+          model: config.ALIYUN_TRYON_MODEL,
+          input: {
+            person_image_url: input.personImageUrl,
+            // 当前商品数据尚未区分上装/下装。top_garment_url 可覆盖上装与连衣裙；
+            // 后续增加服装品类字段后，再按品类切换为 bottom_garment_url。
+            top_garment_url: input.productImageUrl,
+          },
+          parameters: {
+            resolution: -1,
+            restore_face: true,
+          },
+        }),
+        signal: AbortSignal.timeout(20_000),
+      },
+    )
+    const data = (await response.json()) as {
+      output?: { task_id?: string }
+      code?: string
+      message?: string
+    }
+    if (!response.ok) {
+      throw new Error(data.message || `阿里云试衣服务响应异常（${response.status}）`)
+    }
+    const taskId = data.output?.task_id
+    if (!taskId) throw new Error('阿里云试衣服务未返回任务 ID')
+    return { externalTaskId: taskId }
+  }
+
+  async status(externalTaskId: string) {
+    const response = await fetch(
+      `https://dashscope.aliyuncs.com/api/v1/tasks/${encodeURIComponent(externalTaskId)}`,
+      {
+        headers: this.headers(),
+        signal: AbortSignal.timeout(20_000),
+      },
+    )
+    const data = (await response.json()) as {
+      output?: {
+        task_status?: string
+        image_url?: string
+        code?: string
+        message?: string
+      }
+      code?: string
+      message?: string
+    }
+    if (!response.ok) {
+      throw new Error(data.message || `阿里云试衣服务响应异常（${response.status}）`)
+    }
+    const status = String(data.output?.task_status || '').toUpperCase()
+    if (status === 'SUCCEEDED') {
+      const resultUrl = data.output?.image_url
+      if (!resultUrl) throw new Error('阿里云试衣服务未返回结果图片')
+      return { status: 'succeeded' as const, resultUrl }
+    }
+    if (['FAILED', 'CANCELED', 'UNKNOWN'].includes(status)) {
+      return {
+        status: 'failed' as const,
+        failureReason: data.output?.message || data.output?.code || '阿里云试衣生成失败',
+      }
+    }
+    return { status: 'processing' as const }
+  }
+}
+
 export function createTryOnProvider(): TryOnProvider {
   if (config.TRYON_PROVIDER === 'mock') return new MockProvider()
   if (config.TRYON_PROVIDER === 'fal') return new FalProvider()
+  if (config.TRYON_PROVIDER === 'aliyun') return new AliyunTryOnProvider()
   return new HttpProvider()
 }

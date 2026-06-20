@@ -41,12 +41,25 @@ API 默认监听 `3000`，MinIO 控制台映射到 `9001`。生产环境应由 N
 
 `TRYON_PROVIDER=mock` 会在约 5 秒后生成带 Mock 水印的结果，便于演示完整异步链路。
 
-接入真实虚拟试衣服务时设置：
+生产环境默认推荐阿里云百炼 AI 试衣：
 
-- `TRYON_PROVIDER`
-- `AI_CREATE_URL`
-- `AI_STATUS_URL`
-- `AI_API_KEY`
+```env
+TRYON_PROVIDER=aliyun
+DASHSCOPE_API_KEY=sk-你的北京地域API-Key
+ALIYUN_TRYON_MODEL=aitryon
+```
+
+- `aitryon` 为基础版；如需更清晰的纹理和 Logo 还原，可改为 `aitryon-plus`。
+- API Key 必须来自阿里云百炼中国内地（北京）地域。
+- 人像和服装签名 URL 必须能被阿里云公网访问。
+- 当前商品数据未记录服装品类，统一按上装/连衣裙提交。若要准确支持裤子、半裙等下装，需要增加品类字段并提交为 `bottom_garment_url`。
+
+其他遵循通用“创建任务 + 查询状态”协议的服务仍可设置：
+
+- `TRYON_PROVIDER`: 自定义服务商标识。
+- `AI_CREATE_URL`: 创建异步任务地址。
+- `AI_STATUS_URL`: 查询任务状态地址。
+- `AI_API_KEY`: 服务密钥。
 
 Claude 的密钥预留为 `ANTHROPIC_API_KEY`，适合后续增加图片质量检测、服装分类和搭配建议；真正的换装图片仍由专用试衣模型生成。
 

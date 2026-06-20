@@ -21,14 +21,24 @@ API_BASE_URL=http://局域网可访问的电脑IP:3000 npm run dev:weapp
 
 ## AI Provider
 
-默认 `TRYON_PROVIDER=mock`。服务器 Worker 会创建异步任务并生成带 Mock 水印的结果，用于验证完整业务链路。
+服务器 Worker 会创建异步任务并保存生成结果。生产环境推荐使用阿里云百炼 AI 试衣：
 
-生产环境设置：
+```env
+TRYON_PROVIDER=aliyun
+DASHSCOPE_API_KEY=sk-你的北京地域API-Key
+ALIYUN_TRYON_MODEL=aitryon
+```
 
-- `TRYON_PROVIDER`: 服务商标识。
+- `ALIYUN_TRYON_MODEL` 可设为 `aitryon` 或画质更高的 `aitryon-plus`。
+- 当前商品结构未区分上装与下装，阿里云请求暂按上装/连衣裙提交。
+- `TRYON_PROVIDER=mock` 仍可用于本地验证完整业务链路。
+
+自定义服务商可继续设置：
+
+- `TRYON_PROVIDER`: 自定义服务商标识。
 - `AI_CREATE_URL`: 创建异步任务的 HTTPS 地址。
 - `AI_STATUS_URL`: 查询任务状态的 HTTPS 地址。
-- `AI_API_KEY`: 仅配置在云函数环境变量中。
+- `AI_API_KEY`: 仅配置在服务器环境变量中。
 - `AI_CALLBACK_URL`: 可选；当前客户端仍使用轮询。
 
 通用适配协议：
