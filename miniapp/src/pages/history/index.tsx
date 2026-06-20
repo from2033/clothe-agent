@@ -1,4 +1,5 @@
-import { Button, Image, Text, View } from '@tarojs/components'
+import { Button, Text, View } from '@tarojs/components'
+import { LocalImage } from '@/components/LocalImage'
 import Taro, { useDidShow, usePullDownRefresh } from '@tarojs/taro'
 import { useState } from 'react'
 import { api } from '@/services/api'
@@ -107,7 +108,7 @@ export default function HistoryPage() {
       <View className='history__list'>
         {tasks.map((task) => (
           <View className='history-card' key={task.id}>
-            <Image
+            <LocalImage
               className='history-card__image'
               src={
                 task.resultImageTempUrl ||

@@ -4,6 +4,7 @@ import { useRef, useState } from 'react'
 import { api, uploadGarmentImage } from '@/services/api'
 import type { Product, Profile, TryOnTask } from '@/types/domain'
 import { statusLabel } from '@/utils/format'
+import { useLocalImage } from '@/utils/useLocalImage'
 import './index.scss'
 
 const POLL_INTERVAL = 2500
@@ -184,6 +185,13 @@ export default function TryOnPage() {
 
   const processing = task && ['pending', 'processing'].includes(task.status)
 
+  // iOS 真机无法直接显示 http 图，统一下载成本地路径再渲染。
+  const profileLocal = useLocalImage(profile?.photoTempUrl)
+  const garmentLocal = useLocalImage(product?.imageTempUrl)
+  const resultRemote =
+    task?.resultImageTempUrl || product?.imageTempUrl || profile?.photoTempUrl || ''
+  const resultLocal = useLocalImage(resultRemote)
+
   return (
     <View className='page try-on'>
       {!profile?.photoFileId && (
@@ -206,7 +214,7 @@ export default function TryOnPage() {
           {profile.photoTempUrl && (
             <Image
               className='profile-card__image'
-              src={profile.photoTempUrl}
+              src={profileLocal}
               mode='aspectFill'
             />
           )}
@@ -233,7 +241,7 @@ export default function TryOnPage() {
               <View className='garment'>
                 <Image
                   className='garment__image'
-                  src={garmentPreview || product.imageTempUrl || ''}
+                  src={garmentPreview || garmentLocal}
                   mode='aspectFill'
                   onError={() => {
                     if (garmentPreview) setGarmentPreview('')
@@ -297,12 +305,7 @@ export default function TryOnPage() {
           <View className='result__image-wrap'>
             <Image
               className='result__image'
-              src={
-                task.resultImageTempUrl ||
-                product?.imageTempUrl ||
-                profile?.photoTempUrl ||
-                ''
-              }
+              src={resultLocal}
               mode='aspectFit'
             />
             <Text className={`result__status result__status--${task.status}`}>

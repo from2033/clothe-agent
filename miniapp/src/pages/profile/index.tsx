@@ -1,4 +1,5 @@
-import { Button, Image, Input, Text, View } from '@tarojs/components'
+import { Button, Input, Text, View } from '@tarojs/components'
+import { LocalImage } from '@/components/LocalImage'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { useState } from 'react'
 import { api, uploadProfilePhoto } from '@/services/api'
@@ -139,7 +140,7 @@ export default function ProfilePage() {
       <View className='section profile__photo-section'>
         <View className='profile__photo' onClick={choosePhoto}>
           {photoPreview ? (
-            <Image
+            <LocalImage
               className='profile__photo-image'
               src={photoPreview}
               mode='aspectFill'
