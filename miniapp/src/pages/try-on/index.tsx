@@ -129,7 +129,7 @@ export default function TryOnPage() {
         title: '照片使用确认',
         content:
           '你的人像和商品图将发送给 AI 服务生成试穿效果，并保存在云端至你主动删除。',
-        confirmText: '同意并继续',
+        confirmText: '同意继续',
       })
       if (!confirmation.confirm) return
       Taro.setStorageSync('privacyAccepted', true)
