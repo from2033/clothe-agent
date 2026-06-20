@@ -12,6 +12,7 @@ export default function TryOnPage() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [url, setUrl] = useState('')
   const [product, setProduct] = useState<Product | null>(null)
+  const [garmentPreview, setGarmentPreview] = useState('')
   const [task, setTask] = useState<TryOnTask | null>(null)
   const [busy, setBusy] = useState(false)
   const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -90,8 +91,10 @@ export default function TryOnPage() {
       Taro.showLoading({ title: '上传服装图', mask: true })
       const uploaded = await uploadGarmentImage(file.tempFilePath)
       setProduct(uploaded)
+      setGarmentPreview(file.tempFilePath)
       setUrl('')
       setTask(null)
+      Taro.showToast({ title: '服装图已上传', icon: 'success' })
     } catch (error) {
       Taro.showToast({
         title: error instanceof Error ? error.message : '上传失败',
@@ -160,6 +163,7 @@ export default function TryOnPage() {
   function reset() {
     stopPolling()
     setProduct(null)
+    setGarmentPreview('')
     setTask(null)
     setUrl('')
   }
@@ -225,12 +229,15 @@ export default function TryOnPage() {
         <>
           <View className='section'>
             <Text className='section-title'>服装图片（推荐）</Text>
-            {product?.imageTempUrl ? (
+            {product ? (
               <View className='garment'>
                 <Image
                   className='garment__image'
-                  src={product.imageTempUrl}
+                  src={garmentPreview || product.imageTempUrl || ''}
                   mode='aspectFill'
+                  onError={() => {
+                    if (garmentPreview) setGarmentPreview('')
+                  }}
                 />
                 <Text className='garment__change' onClick={uploadGarment}>
                   重新选择
@@ -270,7 +277,8 @@ export default function TryOnPage() {
           <View className='try-on__action'>
             <Button
               className='primary-button'
-              disabled={busy || !profile?.photoFileId}
+              loading={busy}
+              disabled={busy}
               onClick={startTryOn}
             >
               一键试穿

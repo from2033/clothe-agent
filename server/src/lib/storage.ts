@@ -11,18 +11,6 @@ export const storage = new Client({
   secretKey: config.MINIO_SECRET_KEY,
 })
 
-// 仅用于生成对外可访问的签名 URL（手机端展示、试衣厂商下载）。
-// 不会用它做对象读写，因此即便公网端点对本机不可达也无妨。
-const publicStorage = config.MINIO_PUBLIC_ENDPOINT
-  ? new Client({
-      endPoint: config.MINIO_PUBLIC_ENDPOINT,
-      port: config.MINIO_PUBLIC_PORT ?? config.MINIO_PORT,
-      useSSL: config.MINIO_PUBLIC_USE_SSL ?? config.MINIO_USE_SSL,
-      accessKey: config.MINIO_ACCESS_KEY,
-      secretKey: config.MINIO_SECRET_KEY,
-    })
-  : storage
-
 export async function ensureBucket() {
   if (!(await storage.bucketExists(config.MINIO_BUCKET))) {
     await storage.makeBucket(config.MINIO_BUCKET)
@@ -58,7 +46,26 @@ export async function signedUrl(fileId?: string | null, ttlSeconds = 60 * 60) {
   if (!fileId) return ''
   const file = await prisma.storedFile.findUnique({ where: { id: fileId } })
   if (!file) return ''
-  return publicStorage.presignedGetObject(config.MINIO_BUCKET, file.objectKey, ttlSeconds)
+  const expires = Math.floor(Date.now() / 1000) + ttlSeconds
+  const signature = crypto
+    .createHmac('sha256', config.JWT_SECRET)
+    .update(`${file.id}:${expires}`)
+    .digest('hex')
+  return `${config.PUBLIC_BASE_URL}/api/files/${file.id}/content?expires=${expires}&signature=${signature}`
+}
+
+export function verifyFileSignature(fileId: string, expires: number, signature: string) {
+  if (!Number.isSafeInteger(expires) || expires <= Math.floor(Date.now() / 1000)) return false
+  const expected = crypto
+    .createHmac('sha256', config.JWT_SECRET)
+    .update(`${fileId}:${expires}`)
+    .digest('hex')
+  const actualBuffer = Buffer.from(signature)
+  const expectedBuffer = Buffer.from(expected)
+  return (
+    actualBuffer.length === expectedBuffer.length &&
+    crypto.timingSafeEqual(actualBuffer, expectedBuffer)
+  )
 }
 
 export async function readFile(fileId: string) {
