@@ -5,7 +5,7 @@ export default {
     NODE_ENV: '"production"',
   },
   defineConstants: {
-    API_BASE_URL: JSON.stringify(process.env.API_BASE_URL || 'https://api.example.com'),
+    API_BASE_URL: JSON.stringify(process.env.API_BASE_URL || 'http://139.224.226.80:8080'),
     ALLOW_DEV_LOGIN: 'false',
   },
   mini: {},
