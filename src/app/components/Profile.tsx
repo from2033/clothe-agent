@@ -93,7 +93,7 @@ export function Profile() {
           <span className="absolute -right-2 -bottom-2 w-9 h-9 rounded-full bg-[#07c160] text-white flex items-center justify-center shadow-lg">
             <Camera className="w-4 h-4" />
           </span>
-          <input className="hidden" type="file" accept="image/jpeg,image/png,image/webp" capture="environment"
+          <input className="hidden" type="file" accept="image/jpeg,image/png,image/webp"
             onChange={(event) => choosePhoto(event.target.files?.[0])} />
         </label>
         <p className="text-xs text-gray-500 mt-4 text-center leading-5">上传正面全身照<br />光线充足、无遮挡、背景简洁</p>
