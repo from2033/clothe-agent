@@ -5,6 +5,7 @@ import { Profile } from "./components/Profile";
 import { TryOn } from "./components/TryOn";
 import { History } from "./components/History";
 import { NotFound } from "./components/NotFound";
+import { Privacy } from "./components/Privacy";
 
 export const router = createBrowserRouter([
   {
@@ -15,7 +16,8 @@ export const router = createBrowserRouter([
       { path: "profile", Component: Profile },
       { path: "tryon", Component: TryOn },
       { path: "history", Component: History },
+      { path: "privacy", Component: Privacy },
       { path: "*", Component: NotFound },
     ],
   },
-]);
+], { basename: import.meta.env.BASE_URL.replace(/\/$/, "") || "/" });

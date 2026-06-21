@@ -1,202 +1,133 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent } from "./ui/card";
+import { useEffect, useState } from "react";
+import { Camera, Check, LoaderCircle, Save, ShieldCheck, Trash2, User } from "lucide-react";
+import { toast } from "sonner";
+import { Link } from "react-router";
+import { api } from "../api";
+import type { ProfileData } from "../types";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { Camera, Save, User, Check } from "lucide-react";
-import { toast } from "sonner";
 
-interface ProfileData {
-  photo: string;
-  name: string;
-  height: string;
-  bust: string;
-  waist: string;
-  hips: string;
-  weight: string;
-}
+const emptyProfile: ProfileData = {
+  name: "", height: "", weight: "", bust: "", waist: "", hips: "", photoFileId: "",
+};
 
 export function Profile() {
-  const [profile, setProfile] = useState<ProfileData>({
-    photo: "",
-    name: "",
-    height: "",
-    bust: "",
-    waist: "",
-    hips: "",
-    weight: "",
-  });
+  const [profile, setProfile] = useState<ProfileData>(emptyProfile);
+  const [preview, setPreview] = useState("");
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem("userProfile");
-    if (saved) {
-      setProfile(JSON.parse(saved));
-    }
+    api.getProfile()
+      .then((saved) => {
+        if (saved) {
+          setProfile(saved);
+          setPreview(saved.photoTempUrl || "");
+        }
+      })
+      .catch((error) => toast.error(error.message))
+      .finally(() => setLoading(false));
   }, []);
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfile({ ...profile, photo: reader.result as string });
-      };
-      reader.readAsDataURL(file);
+  function choosePhoto(file?: File) {
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("照片不能超过 10MB");
+      return;
     }
-  };
+    setPhoto(file);
+    setPreview(URL.createObjectURL(file));
+  }
 
-  const handleSave = () => {
-    localStorage.setItem("userProfile", JSON.stringify(profile));
-    toast.success("保存成功", {
-      icon: <Check className="w-4 h-4" />,
-    });
-  };
+  async function save() {
+    if (!preview) return toast.error("请先上传正面全身照");
+    if (!profile.height || !profile.weight) return toast.error("请填写身高和体重");
+    setSaving(true);
+    try {
+      const photoFileId = photo
+        ? (await api.uploadProfilePhoto(photo)).fileId
+        : profile.photoFileId;
+      const saved = await api.saveProfile({ ...profile, photoFileId });
+      setProfile(saved);
+      setPhoto(null);
+      setPreview(saved.photoTempUrl || preview);
+      toast.success("资料已保存", { icon: <Check className="w-4 h-4" /> });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "保存失败");
+    } finally {
+      setSaving(false);
+    }
+  }
 
-  const handleChange = (field: keyof ProfileData, value: string) => {
-    setProfile({ ...profile, [field]: value });
-  };
+  async function clearAll() {
+    if (!confirm("将删除个人资料、照片和全部试穿记录，且无法恢复。确定继续吗？")) return;
+    try {
+      await api.clearUserData();
+      localStorage.removeItem("clothApiToken");
+      setProfile(emptyProfile);
+      setPreview("");
+      setPhoto(null);
+      toast.success("全部数据已清空");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "清理失败");
+    }
+  }
+
+  const update = (key: keyof ProfileData, value: string) =>
+    setProfile((current) => ({ ...current, [key]: value }));
+
+  if (loading) {
+    return <div className="page-loading"><LoaderCircle className="animate-spin" />正在加载资料</div>;
+  }
 
   return (
-    <div className="pb-4">
-      {/* Photo Upload */}
-      <div className="bg-white px-4 pt-6 pb-6 mb-2">
-        <div className="flex flex-col items-center">
-          <div className="relative mb-4">
-            <Avatar className="w-24 h-24 border-4 border-gray-100">
-              <AvatarImage src={profile.photo} alt="个人照片" />
-              <AvatarFallback className="bg-gray-50">
-                <User className="w-12 h-12 text-gray-400" />
-              </AvatarFallback>
-            </Avatar>
-            <input
-              type="file"
-              id="photo-upload"
-              className="hidden"
-              accept="image/*"
-              onChange={handlePhotoUpload}
-            />
-            <label htmlFor="photo-upload">
-              <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-[#07C160] rounded-full flex items-center justify-center cursor-pointer active:bg-[#06AD56] transition-colors shadow-lg">
-                <Camera className="w-4 h-4 text-white" />
-              </div>
-            </label>
+    <div className="pb-6">
+      <section className="mobile-section flex flex-col items-center py-7">
+        <label className="relative block cursor-pointer">
+          <div className="w-28 h-36 rounded-2xl overflow-hidden bg-gray-100 border-4 border-white shadow-sm">
+            {preview ? <img src={preview} className="w-full h-full object-cover" alt="个人全身照" /> :
+              <div className="w-full h-full flex items-center justify-center"><User className="w-12 h-12 text-gray-300" /></div>}
           </div>
-          <p className="text-xs text-gray-500 text-center leading-relaxed px-4">
-            建议拍摄正面全身照<br/>光线充足 · 背景简洁
-          </p>
+          <span className="absolute -right-2 -bottom-2 w-9 h-9 rounded-full bg-[#07c160] text-white flex items-center justify-center shadow-lg">
+            <Camera className="w-4 h-4" />
+          </span>
+          <input className="hidden" type="file" accept="image/jpeg,image/png,image/webp" capture="environment"
+            onChange={(event) => choosePhoto(event.target.files?.[0])} />
+        </label>
+        <p className="text-xs text-gray-500 mt-4 text-center leading-5">上传正面全身照<br />光线充足、无遮挡、背景简洁</p>
+      </section>
+
+      <section className="mobile-section space-y-4">
+        <h2 className="section-heading">基本信息</h2>
+        <Field label="姓名（选填）"><Input value={profile.name} maxLength={30} onChange={(e) => update("name", e.target.value)} placeholder="请输入姓名" /></Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="身高 (cm)"><Input inputMode="decimal" value={profile.height} onChange={(e) => update("height", e.target.value)} placeholder="170" /></Field>
+          <Field label="体重 (kg)"><Input inputMode="decimal" value={profile.weight} onChange={(e) => update("weight", e.target.value)} placeholder="55" /></Field>
         </div>
-      </div>
+      </section>
 
-      {/* Basic Info */}
-      <div className="bg-white px-4 pt-4 pb-5 mb-2">
-        <h3 className="text-[15px] font-medium mb-4">基本信息</h3>
-        
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name" className="text-sm text-gray-700">姓名</Label>
-            <Input
-              id="name"
-              placeholder="请输入您的姓名"
-              value={profile.name}
-              onChange={(e) => handleChange("name", e.target.value)}
-              className="h-11 bg-gray-50 border-0 focus-visible:ring-1 focus-visible:ring-[#07C160]"
-            />
-          </div>
+      <section className="mobile-section space-y-4">
+        <h2 className="section-heading">三围数据（选填）</h2>
+        {(["bust", "waist", "hips"] as const).map((key, index) => (
+          <Field key={key} label={`${["胸围", "腰围", "臀围"][index]} (cm)`}>
+            <Input inputMode="decimal" value={profile[key]} onChange={(e) => update(key, e.target.value)} placeholder={["85", "65", "90"][index]} />
+          </Field>
+        ))}
+      </section>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label htmlFor="height" className="text-sm text-gray-700">身高 (cm)</Label>
-              <Input
-                id="height"
-                type="number"
-                placeholder="170"
-                value={profile.height}
-                onChange={(e) => handleChange("height", e.target.value)}
-                className="h-11 bg-gray-50 border-0 focus-visible:ring-1 focus-visible:ring-[#07C160]"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="weight" className="text-sm text-gray-700">体重 (kg)</Label>
-              <Input
-                id="weight"
-                type="number"
-                placeholder="55"
-                value={profile.weight}
-                onChange={(e) => handleChange("weight", e.target.value)}
-                className="h-11 bg-gray-50 border-0 focus-visible:ring-1 focus-visible:ring-[#07C160]"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Three measurements */}
-      <div className="bg-white px-4 pt-4 pb-5 mb-2">
-        <h3 className="text-[15px] font-medium mb-4">三围数据</h3>
-        
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="bust" className="text-sm text-gray-700">胸围 (cm)</Label>
-            <Input
-              id="bust"
-              type="number"
-              placeholder="85"
-              value={profile.bust}
-              onChange={(e) => handleChange("bust", e.target.value)}
-              className="h-11 bg-gray-50 border-0 focus-visible:ring-1 focus-visible:ring-[#07C160]"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="waist" className="text-sm text-gray-700">腰围 (cm)</Label>
-            <Input
-              id="waist"
-              type="number"
-              placeholder="65"
-              value={profile.waist}
-              onChange={(e) => handleChange("waist", e.target.value)}
-              className="h-11 bg-gray-50 border-0 focus-visible:ring-1 focus-visible:ring-[#07C160]"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="hips" className="text-sm text-gray-700">臀围 (cm)</Label>
-            <Input
-              id="hips"
-              type="number"
-              placeholder="90"
-              value={profile.hips}
-              onChange={(e) => handleChange("hips", e.target.value)}
-              className="h-11 bg-gray-50 border-0 focus-visible:ring-1 focus-visible:ring-[#07C160]"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Tips */}
-      <div className="px-4 mb-4">
-        <div className="bg-blue-50 rounded-lg p-3 border border-blue-100">
-          <h4 className="text-sm font-medium text-blue-900 mb-2">测量小贴士</h4>
-          <ul className="text-xs text-blue-800 space-y-1.5 leading-relaxed">
-            <li>• 胸围：从腋下沿胸部最丰满处水平测量</li>
-            <li>• 腰围：沿腰部最细处水平测量一周</li>
-            <li>• 臀围：沿臀部最丰满处水平测量</li>
-          </ul>
-        </div>
-      </div>
-
-      {/* Save Button */}
-      <div className="px-4">
-        <Button 
-          onClick={handleSave} 
-          className="w-full gap-2 h-11 bg-[#07C160] hover:bg-[#06AD56]" 
-          size="lg"
-        >
-          <Save className="w-4 h-4" />
-          保存信息
+      <div className="px-4 space-y-3">
+        <Button onClick={save} disabled={saving} className="app-primary">
+          {saving ? <LoaderCircle className="animate-spin" /> : <Save />}保存信息
         </Button>
+        <Link to="/privacy" className="app-secondary"><ShieldCheck />隐私与照片使用说明</Link>
+        <Button variant="outline" onClick={clearAll} className="w-full h-11 text-red-600 border-red-200"><Trash2 />清空全部数据</Button>
       </div>
     </div>
   );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return <div className="space-y-2"><Label className="text-sm text-gray-700">{label}</Label>{children}</div>;
 }

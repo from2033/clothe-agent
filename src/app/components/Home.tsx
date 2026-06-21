@@ -1,7 +1,7 @@
 import { Link } from "react-router";
 import { Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
-import { User, Shirt, History, Camera, Link2, Sparkles, ChevronRight } from "lucide-react";
+import { User, Shirt, History, Camera, ImagePlus, Sparkles, ChevronRight, Smartphone } from "lucide-react";
 
 export function Home() {
   const features = [
@@ -13,9 +13,9 @@ export function Home() {
       color: "bg-blue-500",
     },
     {
-      icon: Link2,
-      title: "粘贴链接",
-      description: "输入商品链接",
+      icon: ImagePlus,
+      title: "上传衣服",
+      description: "截图或相册",
       path: "/tryon",
       color: "bg-purple-500",
     },
@@ -44,7 +44,7 @@ export function Home() {
           </div>
           <div className="flex-1">
             <h2 className="text-lg font-semibold mb-1">智能虚拟试衣</h2>
-            <p className="text-sm text-gray-500">AI 驱动 · 即时查看上身效果</p>
+            <p className="text-sm text-gray-500">AI 驱动 · 手机也能随时试衣</p>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-2">
@@ -103,7 +103,7 @@ export function Home() {
             </div>
             <div>
               <p className="text-[15px] font-medium mb-0.5">粘贴商品链接</p>
-              <p className="text-sm text-gray-500">复制淘宝、天猫等平台的商品链接</p>
+              <p className="text-sm text-gray-500">上传商品图，或粘贴淘宝、天猫链接</p>
             </div>
           </div>
           <div className="flex gap-3">
@@ -149,6 +149,12 @@ export function Home() {
               </p>
             </div>
           </div>
+        </div>
+      </div>
+      <div className="px-4 pb-3">
+        <div className="bg-green-50 rounded-xl p-3 border border-green-100 flex gap-2">
+          <Smartphone className="w-4 h-4 text-green-700 mt-0.5 shrink-0" />
+          <p className="text-xs text-green-800 leading-5">点击右上角安装按钮，可把智能试衣添加到手机主屏幕，像 App 一样使用。</p>
         </div>
       </div>
     </div>
