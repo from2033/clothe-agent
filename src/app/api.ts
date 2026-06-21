@@ -2,6 +2,7 @@ import type { Product, ProfileData, TryOnTask } from "./types";
 
 const TOKEN_KEY = "clothApiToken";
 const DEVICE_KEY = "clothDeviceId";
+const PASSWORD_KEY = "clothAccessPassword";
 const API_PREFIX = window.location.pathname.startsWith("/cloth") ? "/cloth-api" : "/api";
 
 function randomId() {
@@ -28,7 +29,10 @@ async function login() {
   const response = await fetch(`${API_PREFIX}/auth/dev`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ deviceId: deviceId() }),
+    body: JSON.stringify({
+      deviceId: deviceId(),
+      password: localStorage.getItem(PASSWORD_KEY) || "",
+    }),
   });
   const data = await response.json();
   if (!response.ok || !data.token) {
@@ -36,6 +40,27 @@ async function login() {
   }
   localStorage.setItem(TOKEN_KEY, data.token);
   return data.token as string;
+}
+
+export function isAuthenticated() {
+  return !!localStorage.getItem(TOKEN_KEY);
+}
+
+/** 用访问密码登录：成功则记住密码与 token，失败抛错并清掉密码 */
+export async function authenticate(password: string) {
+  localStorage.setItem(PASSWORD_KEY, password);
+  try {
+    await login();
+  } catch (err) {
+    localStorage.removeItem(PASSWORD_KEY);
+    localStorage.removeItem(TOKEN_KEY);
+    throw err;
+  }
+}
+
+export function logout() {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(PASSWORD_KEY);
 }
 
 async function request<T>(

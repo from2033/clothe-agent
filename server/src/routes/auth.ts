@@ -13,7 +13,12 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     if (!config.ALLOW_DEV_LOGIN || config.NODE_ENV === 'production') {
       return reply.code(404).send({ error: { code: 'NOT_FOUND', message: '接口不存在' } })
     }
-    const { deviceId } = z.object({ deviceId: z.string().min(8).max(100) }).parse(request.body)
+    const { deviceId, password } = z
+      .object({ deviceId: z.string().min(8).max(100), password: z.string().optional() })
+      .parse(request.body)
+    if (config.ACCESS_PASSWORD && password !== config.ACCESS_PASSWORD) {
+      return reply.code(401).send({ error: { code: 'INVALID_PASSWORD', message: '访问密码错误' } })
+    }
     return reply.send(await issueToken(app, `dev:${deviceId}`))
   })
 }

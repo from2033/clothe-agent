@@ -15,6 +15,8 @@ const schema = z.object({
   WECHAT_APP_ID: z.string().default(''),
   WECHAT_APP_SECRET: z.string().default(''),
   ALLOW_DEV_LOGIN: booleanValue,
+  // 设备登录的固定访问密码；非空时 /auth/dev 必须携带正确 password
+  ACCESS_PASSWORD: z.string().default(''),
   MINIO_ENDPOINT: z.string().default('localhost'),
   MINIO_PORT: z.coerce.number().default(9000),
   MINIO_USE_SSL: booleanValue,
