@@ -4,10 +4,21 @@ const TOKEN_KEY = "clothApiToken";
 const DEVICE_KEY = "clothDeviceId";
 const API_PREFIX = window.location.pathname.startsWith("/cloth") ? "/cloth-api" : "/api";
 
+function randomId() {
+  // crypto.randomUUID 仅在安全上下文(HTTPS/localhost)可用；纯 http 下降级
+  const c = globalThis.crypto;
+  if (c?.randomUUID) return c.randomUUID();
+  if (c?.getRandomValues) {
+    const b = c.getRandomValues(new Uint8Array(16));
+    return Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
+  }
+  return `${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`;
+}
+
 function deviceId() {
   let value = localStorage.getItem(DEVICE_KEY);
   if (!value) {
-    value = `${Date.now()}-${crypto.randomUUID()}`;
+    value = `${Date.now()}-${randomId()}`;
     localStorage.setItem(DEVICE_KEY, value);
   }
   return value;
